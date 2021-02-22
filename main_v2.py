@@ -4,7 +4,8 @@ import time
 
 import pyqtgraph as pg
 from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget, QGraphicsView, QGridLayout
+from virtual_rod import ControlButton
 
 from pymavlink import mavutil
 import airsim
@@ -52,6 +53,7 @@ class UI(QMainWindow):
     def InitUI(self):
         ui = Ui_MainWindow()
         ui.setupUi(self)
+        self.control_button = ControlButton()
 
         # pyqtgraph全局参数
         pg.setConfigOption('background', 'w')
@@ -132,6 +134,8 @@ class UI(QMainWindow):
         plot_display.addWidget(self.pw_pitch)
         plot_display = self.findChild(QVBoxLayout, 'yaw')
         plot_display.addWidget(self.pw_yaw)
+        control_button = self.findChild(QGridLayout, 'rod')
+        control_button.addWidget(self.control_button)
 
         self.statusBar().show()
         ############################################################
