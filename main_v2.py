@@ -4,7 +4,11 @@ import time
 
 import pyqtgraph as pg
 from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget, QGraphicsView, QGridLayout
+from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget, QGridLayout, QTabWidget, QPushButton
+from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5.Qt import Qt
+from PyQt5.QtCore import pyqtSlot
 from virtual_rod import ControlButton
 
 from pymavlink import mavutil
@@ -28,6 +32,20 @@ class UI(QMainWindow):
         super().__init__()
         self.mod = 0
         self.run_flag = True
+
+        # 记录无人机在x-y平面的位置
+        self.x_y = [0, 0]
+
+        # 鼠标参数press
+        self.is_move = False
+
+        # control btn flag
+        self.take_off_flag = False
+        self.land_flag = False
+
+        # control_mod设置，0直接控制螺旋桨转速控制模式
+        # 1使用虚拟摇杆控制
+        self.control_mod = 0
         self.vmotor1 = 0
         self.vmotor2 = 0
         self.vmotor3 = 0
@@ -53,7 +71,13 @@ class UI(QMainWindow):
     def InitUI(self):
         ui = Ui_MainWindow()
         ui.setupUi(self)
+
+        # 摇杆按钮
         self.control_button = ControlButton()
+        # print(self.control_button.size())
+        self.control_widget = self.findChild(QTabWidget, 'control_widget')
+        self.take_off_btn = self.findChild(QPushButton, 'take_off')
+        self.land_btn = self.findChild(QPushButton, 'land')
 
         # pyqtgraph全局参数
         pg.setConfigOption('background', 'w')
@@ -160,14 +184,26 @@ class UI(QMainWindow):
         self.motor_all = self.findChild(QWidget, 'motor_all')
         self.motor_all.valueChanged.connect(self.control_all)
 
+        self.control_widget.tabBarClicked.connect(self.control_widget_change)
+
+        self.take_off_btn.clicked.connect(self.take_off_trigger)
+        self.land_btn.clicked.connect(self.land_trigger)
+
+        self.control_button.view.MousePress.connect(self.do_mousePressEvent)
+        self.control_button.view.MouseRelease.connect(self.do_mouseReleaseEvent)
+        self.control_button.view.MouseMove.connect(self.do_mouseMoveEvent)
+
         self.InitLink()
+        self.control_widget_change(0)
 
         # 等待任务接入
-        t1 = threading.Thread(target=self.run_mod, name='run')
+        t1 = threading.Thread(target=self.run_mod, name='air_run')
         t1.start()
-        # controller进程
         t2 = threading.Thread(target=self.controller, name='controller')
         t2.start()
+        # t_collect_data = threading.Thread(target=self.collect_virtual_data, name='collect_data')
+        # t_collect_data.start()
+
         self.show()
 
     def run_mod(self):
@@ -277,12 +313,17 @@ class UI(QMainWindow):
         self.draw(self.curve_omega_pitch, self.data_speed_pitch)
         self.draw(self.curve_omega_yaw, self.data_speed_yaw)
 
+    def control_widget_change(self, index):
+        # 更改控制模式
+        self.control_mod = index
+
     def InitLink(self):
         try:
             self.real_client = mavutil.mavlink_connection("com3", baud=57600)
             self.log_display.append("真实无人机链接成功！")
             self.log_display.moveCursor(QTextCursor.End)
             self.real_connect = True
+
         except:
             self.log_display.append("真实无人机链接失败请检查设备")
             self.log_display.moveCursor(QTextCursor.End)
@@ -335,16 +376,29 @@ class UI(QMainWindow):
             self.log_display.moveCursor(QTextCursor.End)
 
     def controller(self):
-        if self.virtual_connect:
+        while self.virtual_connect and self.run_flag:
             self.virtual_client.enableApiControl(True)
             self.virtual_client.armDisarm(True)
-            while self.run_flag:
+            while self.run_flag and self.control_mod == 0 and self.run_flag:
                 self.virtual_client.moveByMotorPWMsAsync(self.vmotor1, self.vmotor2, self.vmotor3, self.vmotor4, 0.05)
                 self.position, self.linear_velocity, self.angular_velocity, self.linear_acceleration, self.angular_acceleration, self.angle = self.get_virtual_data()
+                time.sleep(0.05)
+            while self.run_flag and self.control_mod == 1 and self.run_flag:
+                # print("摇杆控制模式")
+                self.position, self.linear_velocity, self.angular_velocity, self.linear_acceleration, self.angular_acceleration, self.angle = self.get_virtual_data()
+
+                if self.take_off_flag:
+                    self.virtual_client.takeoffAsync().join()
+                if self.land_flag:
+                    self.virtual_client.landAsync().join()
+                if self.is_move:
+                    # self.virtual_client.moveByVelocityAsync(0,0,-8,0.2).join()
+                    # print('move')
+                    # print(self.x_y)
+                    self.virtual_client.moveByVelocityAsync(self.x_y[0], self.x_y[1], 0, 0.2)
+                time.sleep(0.05)
                 # self.virtual_client.moveByMotorPWMsAsync(1, 1, 1, 1, 0.05)
                 # print("run")
-
-            time.sleep(0.05)
 
     def get_virtual_data(self):
         position = self.virtual_client.getMultirotorState().kinematics_estimated.position.to_numpy_array()
@@ -363,6 +417,51 @@ class UI(QMainWindow):
     def draw(self, pen, data):
         pen.setData(self.data_x[:self.ptr], data[:self.ptr])
         pen.setPos(-10 * self.ptr, 0)
+
+    def take_off_trigger(self):
+        self.take_off_flag = True
+        time.sleep(0.1)
+        self.take_off_flag = False
+
+    def land_trigger(self):
+        self.land_flag = True
+        time.sleep(0.1)
+        self.land_btn = False
+
+    # 重载virtual rod部分代码
+    @pyqtSlot(QtCore.QPoint, name="do_mouseMoveEvent")
+    def do_mouseMoveEvent(self, point):
+        if self.is_move:
+            pt = self.control_button.view.mapToScene(point)
+            x = pt.x()
+            y = pt.y()
+
+            max_ = self.control_button.W_H / 3 + self.control_button.W_H / 6 / 2
+            min_ = self.control_button.W_H / 10
+            if abs(x) >= max_:
+                x = max_ * x / abs(x)
+            if abs(y) >= max_:
+                y = max_ * y / abs(y)
+
+            out = '(' + str(x) + ',' + str(y) + ')'
+            print(out)
+            self.x_y = [x / 10., -y / 10.]
+
+            self.control_button.button.setPos(x, y)
+
+    def do_mousePressEvent(self):
+        self.is_move = True
+
+    def do_mouseReleaseEvent(self):
+        # print('false')
+        self.control_button.End_Action.emit()
+        self.is_move = False
+        self.control_button.button.setPos(0, 0)
+        brush_1 = QtGui.QBrush(Qt.white)
+        self.control_button.right.setBrush(brush_1)
+        self.control_button.left.setBrush(brush_1)
+        self.control_button.up.setBrush(brush_1)
+        self.control_button.down.setBrush(brush_1)
 
 
 app = QApplication(sys.argv)

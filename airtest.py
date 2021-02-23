@@ -5,6 +5,6 @@ client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
 
-# client.moveByMotorPWMsAsync(1,1,1,1,10).join()
+client.moveByVelocityAsync(0,0,-8,5).join()
 
-client.reset()
+# client.reset()

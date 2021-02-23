@@ -184,37 +184,37 @@ class ControlButton(QtWidgets.QWidget):
             if abs(y) >= max_:
                 y = max_ * y / abs(y)
 
-            out = '(' + str(x) + ',' + str(y) + ')'
-            print(point)
-            if x > min_:
-                self.right.setBrush(self.brush_2)
-                self.left.setBrush(self.brush_1)
-                self.up.setBrush(self.brush_1)
-                self.down.setBrush(self.brush_1)
-                self.Go_Direction.emit("right")
-            elif x < -min_:
-                self.right.setBrush(self.brush_1)
-                self.left.setBrush(self.brush_2)
-                self.up.setBrush(self.brush_1)
-                self.down.setBrush(self.brush_1)
-                self.Go_Direction.emit("left")
-            elif y > min_:
-                self.right.setBrush(self.brush_1)
-                self.left.setBrush(self.brush_1)
-                self.up.setBrush(self.brush_1)
-                self.down.setBrush(self.brush_2)
-                self.Go_Direction.emit("down")
-            elif y < -min_:
-                self.right.setBrush(self.brush_1)
-                self.left.setBrush(self.brush_1)
-                self.up.setBrush(self.brush_2)
-                self.down.setBrush(self.brush_1)
-                self.Go_Direction.emit("up")
-            else:
-                self.right.setBrush(self.brush_1)
-                self.left.setBrush(self.brush_1)
-                self.up.setBrush(self.brush_1)
-                self.down.setBrush(self.brush_1)
+            # out = '(' + str(x) + ',' + str(y) + ')'
+            # print(out)
+            # if x > min_:
+            #     self.right.setBrush(self.brush_2)
+            #     self.left.setBrush(self.brush_1)
+            #     self.up.setBrush(self.brush_1)
+            #     self.down.setBrush(self.brush_1)
+            #     self.Go_Direction.emit("right")
+            # elif x < -min_:
+            #     self.right.setBrush(self.brush_1)
+            #     self.left.setBrush(self.brush_2)
+            #     self.up.setBrush(self.brush_1)
+            #     self.down.setBrush(self.brush_1)
+            #     self.Go_Direction.emit("left")
+            # elif y > min_:
+            #     self.right.setBrush(self.brush_1)
+            #     self.left.setBrush(self.brush_1)
+            #     self.up.setBrush(self.brush_1)
+            #     self.down.setBrush(self.brush_2)
+            #     self.Go_Direction.emit("down")
+            # elif y < -min_:
+            #     self.right.setBrush(self.brush_1)
+            #     self.left.setBrush(self.brush_1)
+            #     self.up.setBrush(self.brush_2)
+            #     self.down.setBrush(self.brush_1)
+            #     self.Go_Direction.emit("up")
+            # else:
+            #     self.right.setBrush(self.brush_1)
+            #     self.left.setBrush(self.brush_1)
+            #     self.up.setBrush(self.brush_1)
+            #     self.down.setBrush(self.brush_1)
 
 
             # print(x)
