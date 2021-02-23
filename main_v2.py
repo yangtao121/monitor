@@ -10,6 +10,8 @@ from PyQt5 import QtGui
 from PyQt5.Qt import Qt
 from PyQt5.QtCore import pyqtSlot
 from virtual_rod import ControlButton
+from CommonHelper import CommonHelper
+import source_
 
 from pymavlink import mavutil
 import airsim
@@ -204,7 +206,8 @@ class UI(QMainWindow):
         # t_collect_data = threading.Thread(target=self.collect_virtual_data, name='collect_data')
         # t_collect_data.start()
 
-        self.show()
+
+        # self.show()
 
     def run_mod(self):
         while self.run_flag:
@@ -466,4 +469,8 @@ class UI(QMainWindow):
 
 app = QApplication(sys.argv)
 monitor_ui = UI()
+styleFile = './src/style.qss'
+style = CommonHelper.readQss(styleFile)
+monitor_ui.setStyleSheet(style)
+monitor_ui.show()
 sys.exit(app.exec_())
